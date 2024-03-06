@@ -2,6 +2,7 @@
 """
 
 import configparser
+from server import Router
 
 DEFAULT_TIME = 30
 
@@ -163,7 +164,8 @@ def read_config(filename):
     
     periodic_update = get_periodic_update(config)
 
-    # NEEDS TO RETURN SOMETHING
+    my_router = Router(router_id, inputs, outputs, periodic_update)
+    my_router.main()
 
 read_config('config1.txt')
 
