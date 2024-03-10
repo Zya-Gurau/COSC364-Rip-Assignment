@@ -2,6 +2,7 @@ from socket import *
 import select
 
 BUFSIZE = 4096
+BLOCKING_TIME = 0.1
 
 class Router:
     def __init__(self, router_id, inputs, outputs, timer_value):
@@ -23,10 +24,12 @@ class Router:
 
     def main(self):
 
+
+
         print('main is running')
         while list(self.sockets.values()):
             print('in the loop!')
-            readable, writable, exceptional = select.select(list(self.sockets.values()), [], [], 0)
+            readable, writable, exceptional = select.select(list(self.sockets.values()), [], [], BLOCKING_TIME)
 
             for s in readable:
                 
