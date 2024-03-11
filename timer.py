@@ -7,7 +7,8 @@ class Timer:
         self.started = False
 
     def start_timer(self):
-        self.update_time = self.start_time + self.period
+        current_time = time.time()
+        self.update_time = current_time + self.period
         self.started = True
     
     def update_timer(self):
