@@ -1,6 +1,6 @@
 """
 """
-
+import sys
 import configparser
 from server import Router
 
@@ -165,7 +165,11 @@ def read_config(filename):
     periodic_update = get_periodic_update(config)
 
     my_router = Router(router_id, inputs, outputs, periodic_update)
+
+    #DEBUG!!!!
+    print("Router Started!/n/n")
+
     my_router.main()
 
-read_config('config1.txt')
+read_config(sys.argv[1])
 
