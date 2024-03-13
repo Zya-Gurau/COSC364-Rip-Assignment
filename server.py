@@ -1,6 +1,8 @@
 from socket import *
 import select
 from timer import Timer
+from packets import*
+from forwarding_table import *
 
 BUFSIZE = 4096
 BLOCKING_TIME = 0.1
@@ -38,12 +40,12 @@ class Router:
         pass
 
     def periodic_update(self):
-        #DEBUG!!!!!
-        print("UPDATE!!")
-        test_string = "hello!!"
+        for output in self.outputs:
+            table_entries = [RoutingTableEntry(self.id, self.id, output.link_cost)]
+            table_entries.extend(list(self.routing_table))
+            packet = encode_packet(self.id, table_entries)
 
-        
-        list(self.sockets.values())[0].sendto(test_string.encode(), ('127.0.0.1', self.outputs[0].peer_port_no))
+            list(self.sockets.values())[0].sendto(packet, ('127.0.0.1', output.peer_port_no))
 
 
     def main(self):
@@ -62,7 +64,7 @@ class Router:
                 data, address = s.recvfrom(BUFSIZE)
 
                 #DEBUG !!!!!
-                print(data.decode())
+                print(data)
 
             self.timer.update_timer()
 
