@@ -6,6 +6,7 @@ class RoutingTableEntry:
         self.next_hop = next_hop
         self.metric = metric
         self.timeout = None
+        self.changed_flag = False
         self.garbage_flag = False
         
     def init_timeout(self):

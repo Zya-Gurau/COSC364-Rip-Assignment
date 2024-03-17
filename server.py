@@ -16,6 +16,7 @@ class Router:
         self.timeout_time = timer_value * 6
         self.garbage_time = timer_value * 4
 
+        #dst_id: entry
         self.routing_table = {}
 
         self.timer = None
@@ -29,6 +30,32 @@ class Router:
             s.bind(('127.0.0.1', port))
             sockets[port] = s
         return sockets
+    
+    def resolve_update(self, data):
+
+        src_id , table_entries = decode_packet(data)
+
+        for entry in table_entries:
+            #not already in table
+            if entry.dst_id not in self.routing_table.keys():
+                entry.next_hop = src_id
+                entry.changed_flag = True
+                entry.init_timeout()
+                self.routing_table[entry.dst_id] = entry
+
+            #already in table
+            else:
+                #from same router
+                if self.routing_table[entry.dst_id].next_hop == src_id:
+                    entry.changed_flag = True
+                    entry.init_timeout()
+                    if entry.metric == 16 and self.routing_table[entry.dst_id] != 16:
+                        entry.garbage_flag = True
+                        entry.init_timeout()
+                    self.routing_table[entry.dst_id] = entry
+                
+
+
 
     def check_timeout():
         pass
@@ -40,10 +67,14 @@ class Router:
         pass
 
     def periodic_update(self):
+        #IMPLEMENT SPLIT HORIZON AND POISONED REVERSE!!!!!!!
+
         for output in self.outputs:
-            table_entries = [RoutingTableEntry(self.id, self.id, output.link_cost)]
+            table_entries = [RoutingTableEntry(self.id, self.id, 0)]
+
             table_entries.extend(list(self.routing_table))
-            packet = encode_packet(self.id, table_entries)
+
+            packet = encode_packet(self.id, table_entries, output.link_cost)
 
             list(self.sockets.values())[0].sendto(packet, ('127.0.0.1', output.peer_port_no))
 
@@ -63,8 +94,8 @@ class Router:
                 
                 data, address = s.recvfrom(BUFSIZE)
 
-                #DEBUG !!!!!
-                print(data)
+                if data:
+                    self.resolve_update(data)
 
             self.timer.update_timer()
 
