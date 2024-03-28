@@ -36,6 +36,13 @@ class Router:
         src_id , table_entries = decode_packet(data)
 
         for entry in table_entries:
+
+            # Add cost of link
+            for output in outputs:
+                if output.peer_id == src_id:
+                    link_cost = output.link_cost
+            entry.metric += link_cost
+            
             #not already in table
             if entry.dst_id not in self.routing_table.keys():
                 entry.next_hop = src_id
@@ -74,7 +81,7 @@ class Router:
 
             table_entries.extend(list(self.routing_table))
 
-            packet = encode_packet(self.id, table_entries, output.link_cost)
+            packet = encode_packet(self.id, table_entries)
 
             list(self.sockets.values())[0].sendto(packet, ('127.0.0.1', output.peer_port_no))
 
@@ -83,7 +90,7 @@ class Router:
 
         self.timer = Timer(self.timer_value,  self.periodic_update)
         self.timer.start_timer()
-        self.timer.force_callback()
+        #self.timer.force_callback()
 
         
         while list(self.sockets.values()):
@@ -91,11 +98,12 @@ class Router:
             readable, writable, exceptional = select.select(list(self.sockets.values()), [], [], BLOCKING_TIME)
 
             for s in readable:
-                
+                print(readable)
                 data, address = s.recvfrom(BUFSIZE)
 
                 if data:
-                    self.resolve_update(data)
+                    #self.resolve_update(data)
+                    print(data)
 
             self.timer.update_timer()
 
