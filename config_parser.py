@@ -1,4 +1,9 @@
 """
+    CONFIG_PARSER.PY
+
+    This file reads through the information
+    provided in a configuration file to
+    create an instance of a Router.
 """
 import sys
 import configparser
@@ -6,15 +11,23 @@ from server import Router
 
 DEFAULT_TIME = 30
 
-class RipConfig:
-    def __init__(self, router_id, inputs, outputs, periodic_update = 30):
+class RipConfig: # WE CAN DELETE THIS RIGHT????????????????????????????????????????????????????????????????????????????????????
+    def __init__(self, router_id, inputs, outputs, periodic_update = DEFAULT_TIME):
         self.router_id = router_id
         self.inputs = inputs
         self.outputs = outputs
         self.periodic_update = periodic_update
 
 class OutputInfo:
+    """
+        The output info object is used to validity
+        check each section of a given outgoing
+        connection, and store each of its attributes.
+    """
+    
     def __init__(self, output_info):
+        # Split up the output information given, and perform
+        # validity checks on each part.
         try:
             details = output_info.split('-')
             for i in range(len(details)):
@@ -32,7 +45,6 @@ class OutputInfo:
             if not 1 <= self.peer_id <= 64000:
                 raise ValueError("ERROR - Peer port id numbers must be between 1 and 64,000!")
 
-            
         except TypeError:
             print(f"ERROR - Invalid type for output value {output_info}!")
             exit()
@@ -45,11 +57,17 @@ class OutputInfo:
         
 
 def get_router_id(config):
+    """
+        Gets the Router ID value given in the
+        configuration file, and runs validity
+        checks.
+    """
     try: 
         router_id = int(config['Options']['router-id'])
         if router_id  < 1 | router_id  > 64000:
             raise ValueError
-        return router_id 
+        return router_id
+    
     except TypeError:
         print("ERROR - Invalid type for router-id!")
         exit()
@@ -60,15 +78,18 @@ def get_router_id(config):
 
 
 def get_inputs(config):
+    """
+        Gets the list of Input ports given in the
+        configuration file, and runs validity
+        checks.
+    """
     try:
         inputs = config['Options']['input-ports'].split(',')
-
         if len(inputs) == 0:
             raise Exception("ERROR - There must be at least one input port!")
         
         inputs = [port.strip() for port in inputs]
         inputs = [int(port) for port in inputs]
-
         for port in inputs:
             if port < 1024 | port > 64000:
                 raise ValueError
@@ -90,9 +111,13 @@ def get_inputs(config):
         exit()
 
 def get_outputs(config):
+    """
+        Gets the list of outgoing connections given
+        in the configuration file, and runs
+        validity checks.
+    """
     try:
         outputs = config['Options']['outputs'].split(',')
-
         if len(outputs) == 0:
             raise Exception("ERROR - There must be at least one output port!")
 
@@ -112,6 +137,12 @@ def get_outputs(config):
         exit()
 
 def get_periodic_update(config):
+    """
+        Gets the regularity with which periodic
+        update messages should be sent to neighbouring
+        routers, if specified, and runs validity
+        checks.
+    """
     try:
         if not "periodic-update" in config['Options']:
             return DEFAULT_TIME
@@ -130,12 +161,15 @@ def get_periodic_update(config):
         exit()
 
 def read_config(filename):
-
+    """
+        Reads the file given in the terminal - meant
+        to be a configuration file for a router.
+    """
     config = configparser.ConfigParser()
     config.read(filename)
 
+    # Check that all the required fields are in the configuration file.
     options_list = ['router-id', 'input-ports', 'outputs']
-
     try:
         if not 'Options' in config:
             raise Exception("ERROR - There must be an Options header in config file!")
@@ -146,10 +180,12 @@ def read_config(filename):
         print(err)
         exit()
 
+    # Read the setup info given in the configuration file.
     router_id = get_router_id(config)
     inputs = get_inputs(config)
     outputs = get_outputs(config)
 
+    # Checks that the router is not "its own neighbour"
     try:
         inputs_set = set(inputs)
         outputs_set = set()
@@ -164,12 +200,11 @@ def read_config(filename):
     
     periodic_update = get_periodic_update(config)
 
+    # Creates and starts a router with the relevant specifications.
     my_router = Router(router_id, inputs, outputs, periodic_update)
-
-    #DEBUG!!!!
-    print("Router Started!/n/n")
-
+    print(f"Router {router_id} Started")
     my_router.main()
 
+# Read the file named in the terminal.
 read_config(sys.argv[1])
 
