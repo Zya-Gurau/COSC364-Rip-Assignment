@@ -1,15 +1,9 @@
 # TO DO!
 
 # Add split horizon + poisoned reverse
-# Random timer offset (+/- 20%) on periodic updates
 # Do we wanna name config_parser something easier/more descriptive e.g. setup.py?
-# What if the file we try and read isn't a config file? do we need a try/except for that?
-# I changed it so that routing table is only printed when changed. Read the assignment specs - what do you think? Should it change back?
-# Can't we just delete the RipConfig class in config_parser? I don't think it's ever used.
-# Apparently RIP specs say a message can have a max of 25 RIP entries. Should we implement this or nah? (top of page 21, bottom of page 30)
+# Apparently RIP specs say a message can have a max of 25 RIP entries. (top of page 21, bottom of page 30)
 # Triggered updates: should have a timer! Specified page 29, 3.10.1 paragraph 1.
-# Should config parser check that there are an equal number of input and output ports?
-# Assignment says only use triggered updates when route becomes invalid/cost becomes 16 - not every change!
 
 """
     SERVER.PY
@@ -96,14 +90,12 @@ class Router:
                         entry.changed_flag = True
                         entry.init_timeout()
                         self.routing_table[entry.dst_id] = entry
-                        trigger_update = True
 
                 # Adopt a path if our best path to its destination has timed out.
                 elif self.routing_table[entry.dst_id].garbage_flag is True and entry.metric < INFINITY:
                     entry.changed_flag = True
                     entry.init_timeout()
                     self.routing_table[entry.dst_id] = entry
-                    trigger_update = True
 
                 elif entry.metric == self.routing_table[entry.dst_id].metric:
                     
@@ -117,29 +109,22 @@ class Router:
                         entry.changed_flag = True
                         entry.init_timeout()
                         self.routing_table[entry.dst_id] = entry
-                        trigger_update = True
 
                 # Replace the path in the Routing Table if we find a shorter path, or if our current path has been extended.
                 elif (self.routing_table[entry.dst_id].next_hop == src_id and entry.metric != self.routing_table[entry.dst_id].metric) or entry.metric < self.routing_table[entry.dst_id].metric:
                     entry.changed_flag = True
                     self.routing_table[entry.dst_id] = entry
-                    trigger_update = True
 
                     # Prepares to discard a path if its length is now infinity (i.e. it is unreachable).
                     if entry.metric == INFINITY:
                         self.routing_table[entry.dst_id].garbage_flag = True
                         self.routing_table[entry.dst_id].init_garbage()
+                        trigger_update = True
                     else:
                         self.routing_table[entry.dst_id].init_timeout()
 
-        # If the Routing Table is changed, print it and send out a triggered update.
+        # Send a triggered update if a route has become invalid.
         if trigger_update:
-            print(f'Router {self.id} - Routing Table Update at {time.strftime("%H:%M:%S", time.localtime())}')
-            print("| Destination | Next Hop | Metric | Changed | Garbage |")
-            for destination in self.routing_table.keys().sorted():
-                print(self.routing_table[destination])
-            print(" "+"-"*53+"\n")
-            
             self.triggered_update()
                 
                 
@@ -207,6 +192,13 @@ class Router:
         """
             Sends the Router's full Routing Table to each of its neighbours.
         """
+        # Print the Routing Table at each periodic update.
+        print(f'Router {self.id} - Routing Table Update at {time.strftime("%H:%M:%S", time.localtime())}')
+        print("| Destination | Next Hop | Metric | Changed | Garbage |")
+        for destination in self.routing_table.keys().sorted():
+            print(self.routing_table[destination])
+        print(" "+"-"*53+"\n")
+        
         table_entries = [RoutingTableEntry(self.id, self.id, 0)]
         table_entries.extend(list(self.routing_table.values()))
         packet = encode_packet(self.id, table_entries) # I DON'T THINK THIS NEEDS TO BE IN THE LOOP BUT IF IT'S BROKEN NOW PUT IT BACK IN!!!!!!!!!!!!!

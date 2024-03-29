@@ -8,6 +8,7 @@
 """
 
 import time
+import random
 
 class Timer:
     
@@ -35,7 +36,10 @@ class Timer:
         if self.started == True:
             current_time = time.time()
             if current_time >= self.update_time:
-                self.update_time = current_time + self.period
+                # The next periodic update is sent after the given time period,
+                # +/- 20% to prevent excessive congestion due to periodic updates.
+                random_offset = random.uniform(0.8, 1.2)
+                self.update_time = current_time + (self.period * random_offset)
                 self.callback_func()
 
 

@@ -11,13 +11,6 @@ from server import Router
 
 DEFAULT_TIME = 30
 
-class RipConfig: # WE CAN DELETE THIS RIGHT????????????????????????????????????????????????????????????????????????????????????
-    def __init__(self, router_id, inputs, outputs, periodic_update = DEFAULT_TIME):
-        self.router_id = router_id
-        self.inputs = inputs
-        self.outputs = outputs
-        self.periodic_update = periodic_update
-
 class OutputInfo:
     """
         The output info object is used to validity
@@ -165,17 +158,21 @@ def read_config(filename):
         Reads the file given in the terminal - meant
         to be a configuration file for a router.
     """
-    config = configparser.ConfigParser()
-    config.read(filename)
+    try:
+        config = configparser.ConfigParser()
+        config.read(filename)
+    except:
+        print("ERROR - File provided is not a valid configuration file!")
+        exit()
 
     # Check that all the required fields are in the configuration file.
     options_list = ['router-id', 'input-ports', 'outputs']
     try:
         if not 'Options' in config:
-            raise Exception("ERROR - There must be an Options header in config file!")
+            raise Exception("ERROR - There must be an Options header in configuration file!")
         for option in options_list:
             if not option in config['Options']:
-                raise Exception(f"ERROR - there must be {option} value in config file!")
+                raise Exception(f"ERROR - there must be {option} value in configuration file!")
     except Exception as err:
         print(err)
         exit()
@@ -194,6 +191,8 @@ def read_config(filename):
         intersect = inputs_set.intersection(outputs_set)
         if len(intersect) != 0:
             raise Exception("ERROR - Ports cannot simultaneously be used for both input and output!")
+        if len(inputs_set) != len(outputs_set):
+            raise Exception("ERROR - Routers must have the same number of input and output ports!")
     except Exception as err:
         print(err)
         exit()

@@ -105,6 +105,7 @@ def decode_packet(packet):
         if error_found:
             print("INVALID RTE RECEIVED.")
 
+        # Check the Address Family Identifier value is 2.
         afi = int(packet[cur_index] << 8 | packet[cur_index+1])
         if afi != 2:
             print("INVALID RTE RECEIVED - Address Family Identifier must be 2!")
