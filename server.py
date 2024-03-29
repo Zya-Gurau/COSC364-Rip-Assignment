@@ -38,10 +38,10 @@ class Router:
         for entry in table_entries:
 
             # Add cost of link
-            for output in outputs:
+            for output in self.outputs:
                 if output.peer_id == src_id:
                     link_cost = output.link_cost
-            entry.metric += link_cost
+            entry.metric = min(entry.metric + link_cost, 16)
             
             #not already in table
             if entry.dst_id not in self.routing_table.keys():
@@ -102,8 +102,11 @@ class Router:
                 data, address = s.recvfrom(BUFSIZE)
 
                 if data:
-                    #self.resolve_update(data)
-                    print(data)
+                    #DEBUG
+                    print("| Destination | Next Hop | Metric | Changed | Garbage |")
+                    src_id , table_entries = decode_packet(data)
+                    for entry in table_entries:
+                        print(entry)
 
             self.timer.update_timer()
 
