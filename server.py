@@ -1,11 +1,15 @@
-#todo 
-#add triggered updates
-#add split horizon + poisoned reverse
-# fix changed flag
-# random timer offset
-# do we wanna name config_parser something easier/more descriptive e.g. setup.py?
-# what if the file we try and read isn't a config file? do we need a try/except for that?
-# i changed it so that routing table is only printed when changed. read the assignment specs - what do you think? should it change back?
+# TO DO!
+
+# Add split horizon + poisoned reverse
+# Random timer offset (+/- 20%) on periodic updates
+# Do we wanna name config_parser something easier/more descriptive e.g. setup.py?
+# What if the file we try and read isn't a config file? do we need a try/except for that?
+# I changed it so that routing table is only printed when changed. Read the assignment specs - what do you think? Should it change back?
+# Can't we just delete the RipConfig class in config_parser? I don't think it's ever used.
+# Apparently RIP specs say a message can have a max of 25 RIP entries. Should we implement this or nah? (top of page 21, bottom of page 30)
+# Triggered updates: should have a timer! Specified page 29, 3.10.1 paragraph 1.
+# Should config parser check that there are an equal number of input and output ports?
+# Assignment says only use triggered updates when route becomes invalid/cost becomes 16 - not every change!
 
 """
     SERVER.PY

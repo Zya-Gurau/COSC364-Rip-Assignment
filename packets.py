@@ -29,9 +29,9 @@ def encode_packet(src_id, table_entries):
 
     # RIP ENTRIES
     for entry in table_entries:
-        # Address Family Identifier (not implemented in assignment).
+        # Address Family Identifier.
         packet[cur_index] = 0
-        packet[cur_index+1] = 0
+        packet[cur_index+1] = 2
         # Must be Zero.
         packet[cur_index+2] = 0
         packet[cur_index+3] = 0 
@@ -88,36 +88,41 @@ def decode_packet(packet):
         print("INVALID PACKET RECEIVED - Router IDs must be between 1 and 64000!")
         return src_id, table_entries
     
-    # Perform validity checks on RIP Entries, ignoring
+    # Perform validity checks on RTEs, ignoring
     # all invalid entries.
     cur_index = 4
     for i in range(len(packet[4:])//20):
 
         error_found = False
-
-        # Check all the "Must be Zero" sections of the entry are correct.
-        for i in range(4):
+        
+        # Check all the "Must be Zero" sections of the RTE are correct.
+        for i in range(2,4):
             if int(packet[cur_index+i]) != 0:
                 error_found = True
         for i in range(8,16):
             if int(packet[cur_index+1]) != 0:
                 error_found = True
         if error_found:
-            print("INVALID RIP ENTRY RECEIVED.")
+            print("INVALID RTE RECEIVED.")
+
+        afi = int(packet[cur_index] << 8 | packet[cur_index+1])
+        if afi != 2:
+            print("INVALID RTE RECEIVED - Address Family Identifier must be 2!")
+            error_found = 2
         
         # Checks the Destination Router ID is valid.
         dst_id = int(packet[cur_index+4] << 24 | packet[cur_index+5] << 16 | packet[cur_index+6] << 8 | packet[cur_index+7])
         if dst_id < 1 | dst_id > 64000:
-            print("INVALID RIP ENTRY RECEIVED - Router IDs must be between 1 and 64000!")
+            print("INVALID RTE RECEIVED - Router IDs must be between 1 and 64000!")
             error_found = True
 
         # Checks the Path Cost is valid.
         metric = int(packet[cur_index+16] << 24 | packet[cur_index+17] << 16 | packet[cur_index+18] << 8 | packet[cur_index+19])
         if metric < 0 | metric > INFINITY:
-            print(f"INVALID RIP ENTRY RECEIVED - Metric value must be between 1 and {INFINITY}!")
+            print(f"INVALID RTE RECEIVED - Metric value must be between 1 and {INFINITY}!")
             error_found = True
 
-        # Adds the entry to the summary of the neighbour's Routing Table if it is valid.
+        # Adds the RTE to the summary of the neighbour's Routing Table if it is valid.
         if not error_found:
             table_entries.append(RoutingTableEntry(dst_id, src_id, metric))
             
