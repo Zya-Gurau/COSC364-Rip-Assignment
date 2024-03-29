@@ -1,3 +1,5 @@
+from forwarding_table import RoutingTableEntry
+
 def encode_packet(src_id, table_entries):
     cur_index = 4
 
@@ -48,45 +50,43 @@ def encode_packet(src_id, table_entries):
 def decode_packet(packet):
     cur_index = 4
     table_entries = []
-    src_id = 0
-    try: 
-        #check header
-        if packet[0] != 2:
-            raise Exception("ERROR - This protocol only implements response messages!")
-        if packet[1] != 2:
-            raise Exception("ERROR - Version must be 2!")
-        
-        src_id = packet[2] << 8 | packet[3]
+    src_id = 0 
+    #check header
+    if packet[0] != 2:
+        print("ERROR - This protocol only implements response messages!")
+        return src_id, table_entries
 
-        if src_id < 1 | src_id > 64000:
-            raise ValueError("ERROR - router id's must be between 1 and 64000!")
-        
-        #check entries
-        for i in range(len(packet[4:])/20):
-            dst_id = packet[cur_index+8] << 24 | packet[cur_index+9] << 16 | packet[cur_index+10] << 8 | packet[cur_index+11]
-
-            if dst_id < 1 | dst_id > 64000:
-                raise ValueError("ERROR - router id's must be between 1 and 64000!")
-            
-            metric = packet[cur_index+20] << 24 | packet[cur_index+21] << 16 | packet[cur_index+22] << 8 | packet[cur_index+23]
-
-            if metric < 1 | metric > 16:
-                raise ValueError("ERROR - metric value must be between 1 and 16!")
-            
-            table_entries.append((dst_id, metric))
-            cur_index += 20
-        
+    if packet[1] != 2:
+        print("ERROR - Version must be 2!")
         return src_id, table_entries
     
-    except ValueError as err:
-        print(err)
-        exit()
-    except Exception as err:
-        print(err)
-        exit()
-    except IndexError:
-        print("ERROR - Packet is an invalid length!!!")
-        exit()
+    src_id = int(packet[2] << 8 | packet[3])
+
+    if src_id < 1 | src_id > 64000:
+        print("ERROR - router id's must be between 1 and 64000!")
+        return src_id, table_entries
+    
+    #check entries
+    for i in range(len(packet[4:])//20):
+        error_bool = False
+
+        dst_id = int(packet[cur_index+4] << 24 | packet[cur_index+5] << 16 | packet[cur_index+6] << 8 | packet[cur_index+7])
+
+        if dst_id < 1 | dst_id > 64000:
+            print("ERROR - router id's must be between 1 and 64000!")
+            error_bool = True
+        
+        metric = int(packet[cur_index+16] << 24 | packet[cur_index+17] << 16 | packet[cur_index+18] << 8 | packet[cur_index+19])
+
+        if metric < 0 | metric > 16:
+            print("ERROR - metric value must be between 1 and 16!")
+            error_bool = True
+
+        if not error_bool:
+            table_entries.append(RoutingTableEntry(dst_id, src_id, metric))
+        cur_index += 20
+    
+    return src_id, table_entries
 
 
 

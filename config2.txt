@@ -3,8 +3,8 @@
 
 router-id: 2
 
-input-ports: 5000
+input-ports: 5002, 5003
 
-outputs: 5002-5-2
+outputs: 5000-1-1, 5004-10-3
 
 periodic-update: 5
