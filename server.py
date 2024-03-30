@@ -195,7 +195,7 @@ class Router:
         # Print the Routing Table at each periodic update.
         print(f'Router {self.id} - Routing Table Update at {time.strftime("%H:%M:%S", time.localtime())}')
         print("| Destination | Next Hop | Metric | Changed | Garbage |")
-        for destination in self.routing_table.keys().sorted():
+        for destination in sorted(self.routing_table.keys()):
             print(self.routing_table[destination])
         print(" "+"-"*53+"\n")
         

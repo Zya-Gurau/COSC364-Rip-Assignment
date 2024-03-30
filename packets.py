@@ -100,7 +100,7 @@ def decode_packet(packet):
             if int(packet[cur_index+i]) != 0:
                 error_found = True
         for i in range(8,16):
-            if int(packet[cur_index+1]) != 0:
+            if int(packet[cur_index+i]) != 0:
                 error_found = True
         if error_found:
             print("INVALID RTE RECEIVED.")
