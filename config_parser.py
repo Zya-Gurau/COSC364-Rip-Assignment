@@ -182,7 +182,8 @@ def read_config(filename):
     inputs = get_inputs(config)
     outputs = get_outputs(config)
 
-    # Checks that the router is not "its own neighbour"
+    # Checks that the router is not "its own neighbour", and that each neighbour reachable
+    # through an output can reach the router through an input.
     try:
         inputs_set = set(inputs)
         outputs_set = set()

@@ -18,7 +18,7 @@ def encode_packet(src_id, table_entries):
 
     if len(table_entries) == 0:
         
-        packet = bytearray(min(4+((len(table_entries)-(25*i))*20),4+(25*20)))
+        packet = bytearray(4)
 
         # PACKET HEADER.
         # Command Field.
@@ -95,6 +95,11 @@ def decode_packet(packet):
     table_entries = []
     src_id = 0
     
+    # Ensure the packet is a valid length.
+    if (len(packet) - 4) % 20 != 0 or len(packet) > 4 + (25 * 20):
+        print("INVALID PACKET RECEIVED - Received a packet of invalid length!")
+        return src_id, table_entries
+
     # Perform validity checks on Header.
     if packet[0] != 2:
         print("INVALID PACKET RECEIVED - This protocol only implements Response messages!")

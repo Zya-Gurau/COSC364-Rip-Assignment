@@ -45,18 +45,17 @@ class Timer:
 
 
     def triggered_update_allowed(self):
+        """
+            Measures whether enough time has passed since the last triggered
+            update was sent out, ensuring that triggered updates don't take
+            up too much bandwidth.
+        """
         if self.started is True:
             current_time = time.time()
             if current_time >= self.next_trigger_allowed:
+                # The next triggered update is allowed to be sent sometime between 1s
+                # and 5s after the last one at the soonest.
                 self.next_trigger_allowed = current_time + random.uniform(1.0,5.0)
                 return True
             else:
                 return False
-
-
-    # DO WE NEED THIS FUNCTION FOR ANYTHING???? IT IS NEVER CALLED -----------------------------------------------------------------
-    def force_callback(self):
-        if self.started == True:
-            current_time = time.time()
-            self.update_time = current_time + self.period
-            self.callback_func()

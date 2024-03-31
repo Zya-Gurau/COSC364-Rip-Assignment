@@ -1,8 +1,3 @@
-# TO DO!
-
-# Add split horizon + poisoned reverse
-# Do we wanna name config_parser something easier/more descriptive e.g. setup.py?
-
 """
     SERVER.PY
 
@@ -118,11 +113,17 @@ class Router:
                 
                 
     def triggered_update(self):
-        #SPLIT HORIZON + POISONED REVERSE!!!!!
         """
             Sends out a triggered update to neighbours detailing all
             paths in the Routing Table that have just changed.
         """
+        # Print the Routing Table at each triggered update.
+        print(f'Router {self.id} - Routing Table Update for Triggered Update at {time.strftime("%H:%M:%S", time.localtime())}')
+        print("| Destination | Next Hop | Metric | Changed | Garbage |")
+        for destination in sorted(self.routing_table.keys()):
+            print(self.routing_table[destination])
+        print(" "+"-"*53+"\n")
+        
         # Gets all the recently-changed paths from the Routing Table.
         table_entries = []
         for entry in self.routing_table.values():
@@ -131,9 +132,22 @@ class Router:
                     entry.changed_flag = False
                     
         if len(table_entries) > 0:
-            # Sends these entries to each neighbour.
-            packets = encode_packet(self.id, table_entries) # I DON'T THINK THIS NEEDS TO BE IN THE LOOP BUT IF IT'S BROKEN NOW PUT IT BACK IN!!!!!!!!!!!!!
             for output in self.outputs:
+                
+                # Split horizon with poisoned reverse:
+                # The Router will tell a neighbouring router that a destination is
+                # unreachable through itself if it routes traffic through that
+                # neighbour to reach the destination.
+                entries_sh_pr = []
+                for entry in table_entries:
+                    if entry.next_hop == output.peer_id:
+                        entries_sh_pr.append(RoutingTableEntry(entry.dst_id, entry.next_hop, INFINITY))
+                    else:
+                        entries_sh_pr.append(entry)
+
+                
+                # Sends these entries to each neighbour.
+                packets = encode_packet(self.id, entries_sh_pr)
                 for packet in packets:
                     list(self.sockets.values())[0].sendto(packet, ('127.0.0.1', output.peer_port_no))
 
@@ -141,15 +155,13 @@ class Router:
 
 
     def check_timeout(self):
-        # NOT CONVINCED WE ACTUALLY NEED TO CHECK IF METRIC IS INFINITY, AS THIS WOULD BE PICKED UP IN RESOLVE_UPDATE? THOUGHTS?
         """
             Adds each path in the Routing Table that has timed out or that
             is unreachable to the garbage heap, if it is not already there.
         """
-        
         for entry in self.routing_table.values():
             if self.routing_table[entry.dst_id].garbage_flag == False:
-                if time.time() >= self.routing_table[entry.dst_id].timeout + self.timeout_time or self.routing_table[entry.dst_id].metric == INFINITY:
+                if time.time() >= self.routing_table[entry.dst_id].timeout + self.timeout_time:
                     self.routing_table[entry.dst_id].init_garbage()
                     self.routing_table[entry.dst_id].garbage_flag = True
                     self.routing_table[entry.dst_id].metric = INFINITY
@@ -176,12 +188,11 @@ class Router:
 
 
     def periodic_update(self):
-        #IMPLEMENT SPLIT HORIZON AND POISONED REVERSE!!!!!!!
         """
             Sends the Router's full Routing Table to each of its neighbours.
         """
         # Print the Routing Table at each periodic update.
-        print(f'Router {self.id} - Routing Table Update at {time.strftime("%H:%M:%S", time.localtime())}')
+        print(f'Router {self.id} - Routing Table Update for Periodic Update at {time.strftime("%H:%M:%S", time.localtime())}')
         print("| Destination | Next Hop | Metric | Changed | Garbage |")
         for destination in sorted(self.routing_table.keys()):
             print(self.routing_table[destination])
@@ -189,8 +200,21 @@ class Router:
         
         table_entries = [RoutingTableEntry(self.id, self.id, 0)]
         table_entries.extend(list(self.routing_table.values()))
-        packets = encode_packet(self.id, table_entries) # I DON'T THINK THIS NEEDS TO BE IN THE LOOP BUT IF IT'S BROKEN NOW PUT IT BACK IN!!!!!!!!!!!!!
+        
         for output in self.outputs:
+
+            # Split horizon with poisoned reverse:
+            # The Router will tell a neighbouring router that a destination is
+            # unreachable through itself if it routes traffic through that
+            # neighbour to reach the destination.
+            entries_sh_pr = []
+            for entry in table_entries:
+                if entry.next_hop == output.peer_id:
+                    entries_sh_pr.append(RoutingTableEntry(entry.dst_id, entry.next_hop, INFINITY))
+                else:
+                    entries_sh_pr.append(entry)
+            
+            packets = encode_packet(self.id, entries_sh_pr)
             for packet in packets:
                 list(self.sockets.values())[0].sendto(packet, ('127.0.0.1', output.peer_port_no))
 
@@ -199,6 +223,7 @@ class Router:
             if self.routing_table[destination].changed_flag is True:
                 self.routing_table[destination].changed_flag = False
 
+        # Triggered updates are unnecessary after a periodic update has sent out the info.
         self.triggered_update_call = False
 
 
@@ -209,7 +234,6 @@ class Router:
         """
         self.timer = Timer(self.timer_value,  self.periodic_update)
         self.timer.start_timer()
-        #self.timer.force_callback() # CAN THIS LINE JUST BE DELETED??? IS IT NEEDED FOR ANYTHING????
 
         while list(self.sockets.values()):
 
@@ -227,5 +251,8 @@ class Router:
             self.timer.update_timer()
             self.check_timeout()
             self.check_garbage()
+
+            # Send out a triggered update if a path has been made invalid and if the last triggered
+            # update was sent out sufficiently long ago.
             if self.triggered_update_call and self.timer.triggered_update_allowed():
                 self.triggered_update()
