@@ -25,6 +25,7 @@ class Timer:
         """
         current_time = time.time()
         self.update_time = current_time + self.period
+        self.next_trigger_allowed = current_time
         self.started = True
 
     
@@ -33,7 +34,7 @@ class Timer:
             Calls the callback function if enough time has elapsed, and
             figures out when it should next be called.
         """
-        if self.started == True:
+        if self.started is True:
             current_time = time.time()
             if current_time >= self.update_time:
                 # The next periodic update is sent after the given time period,
@@ -41,6 +42,16 @@ class Timer:
                 random_offset = random.uniform(0.8, 1.2)
                 self.update_time = current_time + (self.period * random_offset)
                 self.callback_func()
+
+
+    def triggered_update_allowed(self):
+        if self.started is True:
+            current_time = time.time()
+            if current_time >= self.next_trigger_allowed:
+                self.next_trigger_allowed = current_time + random.uniform(1.0,5.0)
+                return True
+            else:
+                return False
 
 
     # DO WE NEED THIS FUNCTION FOR ANYTHING???? IT IS NEVER CALLED -----------------------------------------------------------------

@@ -2,8 +2,6 @@
 
 # Add split horizon + poisoned reverse
 # Do we wanna name config_parser something easier/more descriptive e.g. setup.py?
-# Apparently RIP specs say a message can have a max of 25 RIP entries. (top of page 21, bottom of page 30)
-# Triggered updates: should have a timer! Specified page 29, 3.10.1 paragraph 1.
 
 """
     SERVER.PY
@@ -34,9 +32,7 @@ class Router:
         self.id = router_id
         self.inputs = inputs
         self.outputs = outputs
-        # THIS IS JUST HERE FOR DEBUGGING!!! REMOVE THIS LATER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        #self.timer_value = timer_value
-        self.timer_value = 2
+        self.timer_value = timer_value
         self.timeout_time = timer_value * 6
         self.garbage_time = timer_value * 4
 
@@ -44,6 +40,7 @@ class Router:
         self.routing_table = {}
 
         self.timer = None
+        self.triggered_update_call = False
 
         # Initialise the sockets for receiving datagrams.
         self.sockets = self.setup_sockets()
@@ -69,9 +66,6 @@ class Router:
         """
         # Extract all information from the datagram received.
         src_id , table_entries = decode_packet(data)
-
-        # trigger_update tracks if any changes are made to the Routing Table when processing the datagram.
-        trigger_update = False
 
         # Check if each entry in the neighbour's routing table gives new routing information.
         for entry in table_entries:
@@ -113,19 +107,14 @@ class Router:
                 # Replace the path in the Routing Table if we find a shorter path, or if our current path has been extended.
                 elif (self.routing_table[entry.dst_id].next_hop == src_id and entry.metric != self.routing_table[entry.dst_id].metric) or entry.metric < self.routing_table[entry.dst_id].metric:
                     entry.changed_flag = True
+                    entry.init_timeout()
                     self.routing_table[entry.dst_id] = entry
 
                     # Prepares to discard a path if its length is now infinity (i.e. it is unreachable).
                     if entry.metric == INFINITY:
                         self.routing_table[entry.dst_id].garbage_flag = True
                         self.routing_table[entry.dst_id].init_garbage()
-                        trigger_update = True
-                    else:
-                        self.routing_table[entry.dst_id].init_timeout()
-
-        # Send a triggered update if a route has become invalid.
-        if trigger_update:
-            self.triggered_update()
+                        self.triggered_update_call = True
                 
                 
     def triggered_update(self):
@@ -140,11 +129,15 @@ class Router:
                 if entry.changed_flag == True:
                     table_entries.append(entry)
                     entry.changed_flag = False
+                    
+        if len(table_entries) > 0:
+            # Sends these entries to each neighbour.
+            packets = encode_packet(self.id, table_entries) # I DON'T THINK THIS NEEDS TO BE IN THE LOOP BUT IF IT'S BROKEN NOW PUT IT BACK IN!!!!!!!!!!!!!
+            for output in self.outputs:
+                for packet in packets:
+                    list(self.sockets.values())[0].sendto(packet, ('127.0.0.1', output.peer_port_no))
 
-        # Sends these entries to each neighbour.
-        packet = encode_packet(self.id, table_entries) # I DON'T THINK THIS NEEDS TO BE IN THE LOOP BUT IF IT'S BROKEN NOW PUT IT BACK IN!!!!!!!!!!!!!
-        for output in self.outputs:
-            list(self.sockets.values())[0].sendto(packet, ('127.0.0.1', output.peer_port_no))
+        self.triggered_update_call = False
 
 
     def check_timeout(self):
@@ -153,7 +146,6 @@ class Router:
             Adds each path in the Routing Table that has timed out or that
             is unreachable to the garbage heap, if it is not already there.
         """
-        trigger_update = False
         
         for entry in self.routing_table.values():
             if self.routing_table[entry.dst_id].garbage_flag == False:
@@ -162,11 +154,7 @@ class Router:
                     self.routing_table[entry.dst_id].garbage_flag = True
                     self.routing_table[entry.dst_id].metric = INFINITY
                     self.routing_table[entry.dst_id].changed_flag = True
-                    trigger_update = True
-
-        # Tells its neighbours which paths are no longer available with a triggered update.
-        if trigger_update:
-            self.triggered_update()
+                    self.triggered_update_call = True
 
 
     def check_garbage(self):
@@ -201,9 +189,17 @@ class Router:
         
         table_entries = [RoutingTableEntry(self.id, self.id, 0)]
         table_entries.extend(list(self.routing_table.values()))
-        packet = encode_packet(self.id, table_entries) # I DON'T THINK THIS NEEDS TO BE IN THE LOOP BUT IF IT'S BROKEN NOW PUT IT BACK IN!!!!!!!!!!!!!
+        packets = encode_packet(self.id, table_entries) # I DON'T THINK THIS NEEDS TO BE IN THE LOOP BUT IF IT'S BROKEN NOW PUT IT BACK IN!!!!!!!!!!!!!
         for output in self.outputs:
-            list(self.sockets.values())[0].sendto(packet, ('127.0.0.1', output.peer_port_no))
+            for packet in packets:
+                list(self.sockets.values())[0].sendto(packet, ('127.0.0.1', output.peer_port_no))
+
+        # Changed flag can be turned off once neighbours have been informed about the change.
+        for destination in self.routing_table:
+            if self.routing_table[destination].changed_flag is True:
+                self.routing_table[destination].changed_flag = False
+
+        self.triggered_update_call = False
 
 
     def main(self):
@@ -231,3 +227,5 @@ class Router:
             self.timer.update_timer()
             self.check_timeout()
             self.check_garbage()
+            if self.triggered_update_call and self.timer.triggered_update_allowed():
+                self.triggered_update()

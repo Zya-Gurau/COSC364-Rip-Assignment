@@ -14,54 +14,76 @@ def encode_packet(src_id, table_entries):
         Encodes a list of Routing Table Entries
         into a RIP Packet.
     """
-    packet = bytearray(4+(len(table_entries)*20))
+    packets = []
 
-    # PACKET HEADER.
-    # Command Field.
-    packet[0] = 2
-    # RIP Version Field.
-    packet[1] = 2
-    # Router ID of the sending router.
-    packet[2] = src_id >> 8
-    packet[3] = 0xff & src_id
-
-    cur_index = 4
-
-    # RIP ENTRIES
-    for entry in table_entries:
-        # Address Family Identifier.
-        packet[cur_index] = 0
-        packet[cur_index+1] = 2
-        # Must be Zero.
-        packet[cur_index+2] = 0
-        packet[cur_index+3] = 0 
-
-        cur_index+=4
-
-        # IPv4 Address of Destination Router (implemented in assignment as Router ID).
-        packet[cur_index] = entry.dst_id >> 24
-        packet[cur_index+1] = 0xff & (entry.dst_id >> 16)
-        packet[cur_index+2] = 0xffff & (entry.dst_id >> 8)
-        packet[cur_index+3] = 0xffffff & entry.dst_id
-
-        cur_index += 4
-
-        # Must be Zero.
-        for i in range(8):
-            packet[cur_index+i] = 0
-
-        cur_index += 8
-
-        # Metric / Path Cost.
-        cost = entry.metric
-        packet[cur_index] = cost >> 24
-        packet[cur_index+1] = 0xff & (cost >> 16)
-        packet[cur_index+2] = 0xffff & (cost >> 8)
-        packet[cur_index+3] = 0xffffff & cost
-
-        cur_index += 4
+    if len(table_entries) == 0:
         
-    return packet
+        packet = bytearray(min(4+((len(table_entries)-(25*i))*20),4+(25*20)))
+
+        # PACKET HEADER.
+        # Command Field.
+        packet[0] = 2
+        # RIP Version Field.
+        packet[1] = 2
+        # Router ID of the sending router.
+        packet[2] = src_id >> 8
+        packet[3] = 0xff & src_id
+
+        packets.append(packet)
+        return packets
+    
+    for i in range(((len(table_entries)-1) // 25)+1):
+        
+        packet = bytearray(min(4+((len(table_entries)-(25*i))*20),4+(25*20)))
+
+        # PACKET HEADER.
+        # Command Field.
+        packet[0] = 2
+        # RIP Version Field.
+        packet[1] = 2
+        # Router ID of the sending router.
+        packet[2] = src_id >> 8
+        packet[3] = 0xff & src_id
+
+        cur_index = 4
+
+        # RIP ENTRIES
+        for entry in table_entries:
+            # Address Family Identifier.
+            packet[cur_index] = 0
+            packet[cur_index+1] = 2
+            # Must be Zero.
+            packet[cur_index+2] = 0
+            packet[cur_index+3] = 0 
+
+            cur_index+=4
+
+            # IPv4 Address of Destination Router (implemented in assignment as Router ID).
+            packet[cur_index] = entry.dst_id >> 24
+            packet[cur_index+1] = 0xff & (entry.dst_id >> 16)
+            packet[cur_index+2] = 0xffff & (entry.dst_id >> 8)
+            packet[cur_index+3] = 0xffffff & entry.dst_id
+
+            cur_index += 4
+
+            # Must be Zero.
+            for i in range(8):
+                packet[cur_index+i] = 0
+
+            cur_index += 8
+
+            # Metric / Path Cost.
+            cost = entry.metric
+            packet[cur_index] = cost >> 24
+            packet[cur_index+1] = 0xff & (cost >> 16)
+            packet[cur_index+2] = 0xffff & (cost >> 8)
+            packet[cur_index+3] = 0xffffff & cost
+
+            cur_index += 4
+
+            packets.append(packet)
+        
+    return packets
 
 def decode_packet(packet):
     """

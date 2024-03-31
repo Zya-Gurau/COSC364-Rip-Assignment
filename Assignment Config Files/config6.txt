@@ -1,10 +1,10 @@
 # config file for router
 [Options]
 
-router-id 6
+router-id: 6
 
-input-ports 5013, 5014
+input-ports: 5013, 5014
 
-outputs 5012-1-5, 5002-5-1
+outputs: 5012-1-5, 5002-5-1
 
-periodic-update 5
+periodic-update: 5
