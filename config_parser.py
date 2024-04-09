@@ -5,6 +5,7 @@
     provided in a configuration file to
     create an instance of a Router.
 """
+
 import sys
 import configparser
 from server import Router
@@ -78,7 +79,7 @@ def get_inputs(config):
     """
     try:
         inputs = config['Options']['input-ports'].split(',')
-        if len(inputs) == 0:
+        if inputs == [""]:
             raise Exception("ERROR - There must be at least one input port!")
         
         inputs = [port.strip() for port in inputs]
@@ -111,7 +112,7 @@ def get_outputs(config):
     """
     try:
         outputs = config['Options']['outputs'].split(',')
-        if len(outputs) == 0:
+        if outputs == [""]:
             raise Exception("ERROR - There must be at least one output port!")
 
         outputs = [port.strip() for port in outputs]
