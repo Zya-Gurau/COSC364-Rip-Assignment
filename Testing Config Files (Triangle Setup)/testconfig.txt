@@ -1,10 +1,10 @@
 # config file for router
 [Options]
 
-router-id: 3
+router-id: 1
 
 input-ports: 5001
 
-outputs: 
+outputs: 5002-1-1
 
 periodic-update: 5

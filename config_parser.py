@@ -30,7 +30,7 @@ class OutputInfo:
             self.link_cost = details[1]
             self.peer_id = details[2]
 
-            if self.peer_port_no < 1024 | self.peer_port_no > 64000:
+            if self.peer_port_no < 1024 or self.peer_port_no > 64000:
                 raise ValueError("ERROR - Peer port number must be between 1,024 and 64,000!")
 
             if not 1 <= self.link_cost <= 16:
@@ -58,7 +58,7 @@ def get_router_id(config):
     """
     try: 
         router_id = int(config['Options']['router-id'])
-        if router_id  < 1 | router_id  > 64000:
+        if router_id  < 1 or router_id  > 64000:
             raise ValueError
         return router_id
     
@@ -85,7 +85,7 @@ def get_inputs(config):
         inputs = [port.strip() for port in inputs]
         inputs = [int(port) for port in inputs]
         for port in inputs:
-            if port < 1024 | port > 64000:
+            if port < 1024 or port > 64000:
                 raise ValueError
         
         input_set = set(inputs)
@@ -188,13 +188,17 @@ def read_config(filename):
     try:
         inputs_set = set(inputs)
         outputs_set = set()
+        output_ids_set = set()
         for output in outputs:
             outputs_set.add(output.peer_port_no)
+            output_ids_set.add(output.peer_id)
         intersect = inputs_set.intersection(outputs_set)
         if len(intersect) != 0:
             raise Exception("ERROR - Ports cannot simultaneously be used for both input and output!")
         if len(inputs_set) != len(outputs_set):
             raise Exception("ERROR - Routers must have the same number of input and output ports!")
+        if router_id in output_ids_set:
+            raise Exception("ERROR - Routers must have unique Router IDs!")
     except Exception as err:
         print(err)
         exit()
