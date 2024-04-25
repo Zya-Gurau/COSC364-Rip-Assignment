@@ -136,7 +136,7 @@ def decode_packet(packet):
         afi = int(packet[cur_index] << 8 | packet[cur_index+1])
         if afi != 2:
             print("INVALID RTE RECEIVED - Address Family Identifier must be 2!")
-            error_found = 2
+            error_found = True
         
         # Checks the Destination Router ID is valid.
         dst_id = int(packet[cur_index+4] << 24 | packet[cur_index+5] << 16 | packet[cur_index+6] << 8 | packet[cur_index+7])
